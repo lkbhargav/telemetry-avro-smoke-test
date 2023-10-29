@@ -1,0 +1,16 @@
+{
+    "type": "record",
+    "name": "TelmetryObject",
+    "fields" : [
+      {"name": "env_id",          "type": "long"},
+      {"name": "type",            "type": "string"},
+      {"name": "custom_message",  "type": "string"},
+      {"name": "value",           "type": "string"},
+      {"name": "stacktrace",      "type": "string"},
+      {"name": "heap_version",    "type": "string"},
+      {"name": "library",         "type": "string"},
+      {"name": "user_agent",      "type": "string"},
+      {"name": "ip",              "type": "string"},
+      {"name": "sent_time",       "type": "long"}
+    ]
+  }
