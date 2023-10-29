@@ -166,7 +166,11 @@ func main() {
 	defer kafka.Close()
 
 	createDbAndTable(db)
+	log.Println("Created DB and Table")
 	createKafkaTopic(kafka, topic)
+	log.Println("Created Kafka topic")
 	addKafkaPipeline(db, pipelineName, topic)
+	log.Println("Created Kafka pipeline")
 	writeMessageToKafka(topic, msg)
+	log.Println("Sent AVRO encoded message to Kafka")
 }
