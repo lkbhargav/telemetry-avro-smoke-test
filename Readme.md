@@ -1,4 +1,4 @@
-How to work with it,
+### How to work with it,
 
 1. Signup to Singlestore with personal account and grab license key (S2_LICENSE_KEY) and plug it into `.env` file.
 
@@ -18,13 +18,13 @@ How to work with it,
 
 6. To confirm if data is being ingested to S2 by the pipeline you can run the select query on the table (`select * from sdk_telemetry;`) on S2 studio.
 
-For debugging,
+### For debugging,
 
 You can connect to S2 Sql (using Mysql client) running in the Docker container by running the following,
 
 `mysql -u root -P 3306 -h 0.0.0.0 -p<DB password>`
 
-Arbitary queries for reference,
+### Arbitary queries for reference,
 
 `show pipelines;`
 
