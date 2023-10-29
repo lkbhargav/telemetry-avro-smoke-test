@@ -100,15 +100,11 @@ func writeMessageToKafka(topicName string, message []byte) {
 	handleErr(err, "trying to write messages to Kafka")
 }
 
-func addKafkaPipeline(db *sql.DB, topicName string) {
-	_, err := db.Exec(fmt.Sprintf(`
-		create pipeline if not exists kafka_telemtry_ingestion AS 
-			LOAD DATA KAFKA 'localhost:29092/%s'
-			CONFIG '{
-				"sasl.mechanism": "PLAIN"
-			}'
+func addKafkaPipeline(db *sql.DB, pipelineName, topicName string) {
+	_, err := db.Exec(fmt.Sprint(`
+		create pipeline if not exists ` + pipelineName + ` AS 
+			LOAD DATA KAFKA 'kafka:9092/` + topicName + `' 
 			SKIP DUPLICATE KEY ERRORS
-			SKIP CONSTRAINT ERRORS
 			INTO TABLE sdk_telemetry FORMAT AVRO SCHEMA '{
 				"type": "record",
 				"name": "TelmetryObject",
@@ -124,16 +120,27 @@ func addKafkaPipeline(db *sql.DB, topicName string) {
 				  {"name": "ip",              "type": "string"},
 				  {"name": "sent_time",       "type": "long"}
 				]
-			  }'`, topicName))
-
+			  }'
+              (env_id <- %::env_id,
+                type <- %::type,
+                custom_message <- %::custom_message,
+                stacktrace <- %::stacktrace,
+                heap_version <- %::heap_version,
+                library <- %::library,
+                user_agent <- %::user_agent,
+                ip <- %::ip,
+                sent_time <- %::sent_time);`))
 	handleErr(err, "trying to create pipeline")
+
+	_, err = db.Exec(fmt.Sprintf(`start pipeline %s;`, pipelineName))
+	handleErr(err, "trying to start pipeline")
 }
 
 func main() {
 	messageHandler, err := message.New()
 	handleErr(err, "initiating new message handler")
 
-	msg, err := messageHandler.ToAvro([]message.Message{{
+	msg, err := messageHandler.ToAvro(message.Message{
 		EnvId:         123456,
 		Type:          "data",
 		CustomMessage: "foo",
@@ -144,13 +151,11 @@ func main() {
 		UserAgent:     "Chrome linux",
 		IP:            "127.0.0.1",
 		SentTime:      1698560695,
-	}})
+	})
 	handleErr(err, "compression err")
 
-	// following is only for testing
-	// messageHandler.ToData(msg)
-
 	topic := os.Getenv("KAFKA_TOPIC")
+	pipelineName := os.Getenv("S2_PIPELINE_NAME")
 
 	db, err := createDBConn()
 	handleErr(err, "trying to establish db connection")
@@ -162,7 +167,6 @@ func main() {
 
 	createDbAndTable(db)
 	createKafkaTopic(kafka, topic)
-	// addKafkaPipeline(db, topic)
-	listTopics(kafka)
+	addKafkaPipeline(db, pipelineName, topic)
 	writeMessageToKafka(topic, msg)
 }

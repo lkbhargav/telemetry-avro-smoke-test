@@ -1,7 +1,6 @@
 package message
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -67,47 +66,21 @@ func New() (MessageHandler, error) {
 	}, nil
 }
 
-func (m *MessageHandler) ToAvro(messages []Message) ([]byte, error) {
-	var ocfBuffer bytes.Buffer
-
-	writer, err := goavro.NewOCFWriter(goavro.OCFConfig{
-		Codec: m.c,
-		W:     &ocfBuffer,
-	})
+func (m *MessageHandler) ToAvro(message Message) ([]byte, error) {
+	codec, err := goavro.NewCodec(m.s)
 	if err != nil {
-		return []byte{}, fmt.Errorf("trying to create an OCFWriter. Err: %w", err)
+		return []byte{}, fmt.Errorf("trying to create a codec instance. Err: %w", err)
 	}
 
-	for _, structMsg := range messages {
-		msg, err := structMsg.toDatum()
-		if err != nil {
-			return []byte{}, fmt.Errorf("trying to convert struct message to json. Err: %w", err)
-		}
-
-		err = writer.Append([]interface{}{msg})
-		if err != nil {
-			return []byte{}, fmt.Errorf("trying to append data to message. Err: %w", err)
-		}
+	msg, err := message.toDatum()
+	if err != nil {
+		return []byte{}, fmt.Errorf("trying to convert struct message to json. Err: %w", err)
 	}
 
-	return ocfBuffer.Bytes(), nil
+	avroData, err := codec.BinaryFromNative(nil, msg)
+	if err != nil {
+		return []byte{}, fmt.Errorf("trying to get avro binary data from native form")
+	}
+
+	return avroData, nil
 }
-
-// func (m *MessageHandler) ToData(data []byte) error {
-// 	ocfReader, err := goavro.NewOCFReader(strings.NewReader(string(data)))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	fmt.Println("Records in OCF File")
-
-// 	for ocfReader.Scan() {
-// 		record, err := ocfReader.Read()
-// 		if err != nil {
-// 			return err
-// 		}
-// 		fmt.Println("record", record)
-// 	}
-
-// 	return nil
-// }
